@@ -6,63 +6,66 @@ from collections import deque
 app = Flask(__name__)
 CORS(app)
 
+# This code creates a maze with the specified width and height parameters, where each cell initially has walls on all four sides, 
+# and then paths are formed through recursive depth search and random selection of directions.
+# After that, the create_additional_paths function adds additional passages to create a more complex maze with several possible paths.
 def generate_maze(width, height):
-    # Create a two-dimensional list (grid), where each cell has a "not visited" state and four walls
     maze = [[{'path': False, 'visited': False, 'walls': [True, True, True, True]} for _ in range(width)] for _ in range(height)]
     
     def remove_wall(x, y, direction):
-        # Function for removing walls between cells
-        # x, y - coordinates of the current cell, direction - direction to remove the wall
-        if direction == 'N':
-            # If the direction is north, remove the wall to the north and south of the neighboring cell
+        if direction == 'N' and y > 0:
             maze[y][x]['walls'][0] = False
-            if y > 0:
-                maze[y-1][x]['walls'][2] = False
-        elif direction == 'E':
-            # If the direction is east, remove the wall to the east and west of the neighboring cell
+            maze[y-1][x]['walls'][2] = False
+        elif direction == 'E' and x < width - 1:
             maze[y][x]['walls'][1] = False
-            if x < width - 1:
-                maze[y][x+1]['walls'][3] = False
-        elif direction == 'S':
-            # If the direction is south, remove the wall to the south and north of the neighboring cell
+            maze[y][x+1]['walls'][3] = False
+        elif direction == 'S' and y < height - 1:
             maze[y][x]['walls'][2] = False
-            if y < height - 1:
-                maze[y+1][x]['walls'][0] = False
-        elif direction == 'W':
-            # If the direction is west, remove the wall to the west and east of the neighboring cell
+            maze[y+1][x]['walls'][0] = False
+        elif direction == 'W' and x > 0:
             maze[y][x]['walls'][3] = False
-            if x > 0:
-                maze[y][x-1]['walls'][1] = False
+            maze[y][x-1]['walls'][1] = False
 
     def visit_cell(x, y):
-        # Mark the cell as visited and select a random order of directions to continue
         maze[y][x]['visited'] = True
-        directions = ['N', 'E', 'S', 'W']  # List of possible directions of movement: north, east, south, west
-        random.shuffle(directions)  # Shuffle directions for random selection
+        directions = ['N', 'E', 'S', 'W']
+        random.shuffle(directions)
         
-        # We go in every direction
         for direction in directions:
-            nx, ny = x, y # nx and ny - the coordinates of the neighboring cell in the direction of direction
-           # Determine the coordinates of the neighboring cell depending on the direction
+            nx, ny = x, y
             if direction == 'N':
-                ny = y - 1
+                ny -= 1
             elif direction == 'E':
-                nx = x + 1
+                nx += 1
             elif direction == 'S':
-                ny = y + 1
+                ny += 1
             elif direction == 'W':
-                nx = x - 1
+                nx -= 1
             
-            # If an adjacent cell exists and is not visited, remove the wall and recursively visit this cell
             if 0 <= nx < width and 0 <= ny < height and not maze[ny][nx]['visited']:
                 remove_wall(x, y, direction)
                 visit_cell(nx, ny)
 
-    # Choose a random starting point for generating the maze
-    start_x, start_y = random.randint(0, width-1), random.randint(0, height-1)
-    visit_cell(start_x, start_y)  # Start the generation process from the starting point
+    def create_additional_paths():
+        for _ in range(random.randint(1, width*height//4)):  
+            x, y = random.randint(0, width-1), random.randint(0, height-1)
+            directions = ['N', 'E', 'S', 'W']
+            random.shuffle(directions)
+            for direction in directions:
+                if direction == 'N' and y > 0:
+                    remove_wall(x, y, 'N')
+                elif direction == 'E' and x < width - 1:
+                    remove_wall(x, y, 'E')
+                elif direction == 'S' and y < height - 1:
+                    remove_wall(x, y, 'S')
+                elif direction == 'W' and x > 0:
+                    remove_wall(x, y, 'W')
 
-    return maze # Return the generated maze
+    start_x, start_y = random.randint(0, width-1), random.randint(0, height-1)
+    visit_cell(start_x, start_y)
+    create_additional_paths()
+
+    return maze
 
 # Breadth-First Search algorithm (BFS)
 def bfs(maze, start, end):
